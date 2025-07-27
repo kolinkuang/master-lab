@@ -47,8 +47,6 @@
             },
             body: `message=${encodeURIComponent(message)}`
         })
-
-
     }
 
     async function main() {
@@ -65,6 +63,13 @@
             const dom = renderTweet(tweet);
             $('#message-list').prepend(dom);
         }
+
+        // SSE streaming
+        new EventSource('/api/v1/tweets/sse').addEventListener('message', event => {
+            const tweet = JSON.parse(event.data);
+            const dom = renderTweet(tweet);
+            $('#message-list').prepend(dom);
+        });
     }
 
     function renderTweet({username, message, createdAt}) {

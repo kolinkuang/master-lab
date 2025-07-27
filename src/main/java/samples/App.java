@@ -30,6 +30,7 @@ public class App {
                 .withHttpPort(port)
                 .addHandler(Method.POST, "/api/v1/tweets", tweetHandler::createTweet)
                 .addHandler(Method.GET, "/api/v1/tweets", tweetHandler::getAllTweets)
+                .addHandler(Method.GET, "/api/v1/tweets/sse", tweetHandler::sse)
                 .addHandler(context("/web")
                         .addHandler(ResourceHandlerBuilder
                                 .fileOrClasspath("src/main/resources/web", "web")
