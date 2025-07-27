@@ -24,10 +24,12 @@ public class App {
 
     public void start() {
 
+        SessionHandler sessionHandler = new SessionHandler();
         TweetHandler tweetHandler = new TweetHandler();
 
         muServer = MuServerBuilder.muServer()
                 .withHttpPort(port)
+                .addHandler(Method.POST, "/api/v1/sessions/login", sessionHandler::login)
                 .addHandler(Method.POST, "/api/v1/tweets", tweetHandler::createTweet)
                 .addHandler(Method.GET, "/api/v1/tweets", tweetHandler::getAllTweets)
                 .addHandler(Method.GET, "/api/v1/tweets/sse", tweetHandler::sse)
