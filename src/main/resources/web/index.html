@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Index</title>
+</head>
+<body>
+
+<div>
+    <header>
+        <div class="logo"></div>
+        <div class="greeting">
+            <span id="greet">Hello Kolin</span>
+            <form class="" action="" method="post">
+                <button type="submit" class="primary">Logout</button>
+            </form>
+        </div>
+    </header>
+    <main>
+        <form action="" id="post-message">
+            <div>
+                <label for="message">Tell us what's happening:</label>
+                <textarea name="message" id="message" rows="3"></textarea>
+            </div>
+            <button type="submit" onclick="submitTweet">Post</button>
+        </form>
+        <div class="message-list" id="message-list">
+
+        </div>
+    </main>
+    <footer>
+        <span>Powered by Master Lab @ 2025</span>
+    </footer>
+</div>
+
+<script>
+    async function submitTweet(event) {
+        event.preventDefault(); // stop the form to refresh globally
+
+        const message = event.target.message.value;
+
+        await fetch('/api/v1/tweets', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: `message=${encodeURIComponent(message)}`
+        })
+
+
+    }
+
+    async function main() {
+        const $ = document.querySelector.bind(document);
+
+        // post message
+        $('#post-message').addEventListener('submit', submitTweet);
+
+        // load messages
+        const response = await fetch('/api/v1/tweets');
+        const tweets = await response.json();
+
+        for (tweet of tweets) {
+            const dom = renderTweet(tweet);
+            $('#message-list').prepend(dom);
+        }
+    }
+
+    function renderTweet({username, message, createdAt}) {
+        const dom = document.createElement('div');
+
+        const finalMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // sanitize message
+//        const finalTime = createdAt.replace('I', ' ').slice(0, 16);
+
+        dom.className = 'tweet';
+        dom.innerHTML = `
+        <div class="message-content">
+            <div class="message-header">
+                <span class="username">${username}</span>
+                <span>posted at</span>
+                <span class="timestamp">${createdAt}</span>
+                <span>:</span>
+            </div>
+            <p class="message-body">
+                ${finalMessage}
+            </p>
+        </div>
+        `;
+        return dom;
+    }
+
+    main()
+        .then(() => console.log('App initialized'))
+        .catch(err => console.error('Error:', err));
+</script>
+
+</body>
+</html>
