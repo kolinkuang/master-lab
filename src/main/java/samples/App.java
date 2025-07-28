@@ -28,6 +28,8 @@ public class App {
 
         muServer = MuServerBuilder.muServer()
                 .withHttpPort(port)
+                .addResponseCompleteListener(logResponse())
+                .addHandler(logRequest())
                 .addHandler(authFilter(sessionHandler, List.of(
                         "/api/v1/sessions/validate",
                         "/api/v1/tweets",
@@ -45,6 +47,23 @@ public class App {
                                 .withDefaultFile("index.html")
                         ))
                 .start();
+    }
+
+    private MuHandler logRequest() {
+        return (muRequest, muResponse) -> {
+            log.info("Received request: {} {} from {}",
+                    muRequest.method(),
+                    muRequest.uri(),
+                    muRequest.remoteAddress());
+            return false; // Continue processing the request
+        };
+    }
+
+    private ResponseCompleteListener logResponse() {
+        return info -> log.info("Completed request {} with status {} in {} ms",
+                info.request().uri(),
+                info.response().status(),
+                info.duration());
     }
 
     private MuHandler authFilter(SessionHandler sessionHandler, List<String> apiPathsToBeValidated) {
