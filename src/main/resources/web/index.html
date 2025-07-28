@@ -11,8 +11,8 @@
     <header>
         <div class="logo"></div>
         <div class="greeting">
-            <span id="greet">Hello Kolin</span>
-            <form class="" action="" method="post">
+            <span id="greet"></span>
+            <form class="" action="/api/v1/sessions/logout" method="post">
                 <button type="submit" class="primary">Logout</button>
             </form>
         </div>
@@ -52,13 +52,22 @@
     async function main() {
         const $ = document.querySelector.bind(document);
 
+        // get session
+        const sessionResponse = await fetch('/api/v1/sessions/validate');
+        if (!sessionResponse.ok) {
+            location.href = '/web/login.html';
+        }
+        const session = await sessionResponse.json();
+        const username = session.username;
+
+        $('#greet').innerText = `Hello ${username}`;
+
         // post message
         $('#post-message').addEventListener('submit', submitTweet);
 
         // load messages
         const response = await fetch('/api/v1/tweets');
         const tweets = await response.json();
-
         for (tweet of tweets) {
             const dom = renderTweet(tweet);
             $('#message-list').prepend(dom);
@@ -76,7 +85,7 @@
         const dom = document.createElement('div');
 
         const finalMessage = message.replace(/</g, '&lt;').replace(/>/g, '&gt;'); // sanitize message
-//        const finalTime = createdAt.replace('I', ' ').slice(0, 16);
+        const finalTime = createdAt.slice(0, 19);
 
         dom.className = 'tweet';
         dom.innerHTML = `
@@ -84,7 +93,7 @@
             <div class="message-header">
                 <span class="username">${username}</span>
                 <span>posted at</span>
-                <span class="timestamp">${createdAt}</span>
+                <span class="timestamp">${finalTime}</span>
                 <span>:</span>
             </div>
             <p class="message-body">

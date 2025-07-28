@@ -1,12 +1,11 @@
 package samples;
 
-import io.muserver.Method;
-import io.muserver.MuServer;
-import io.muserver.MuServerBuilder;
+import io.muserver.*;
 import io.muserver.handlers.ResourceHandlerBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 
 import static io.muserver.ContextHandlerBuilder.context;
@@ -29,7 +28,14 @@ public class App {
 
         muServer = MuServerBuilder.muServer()
                 .withHttpPort(port)
+                .addHandler(authFilter(sessionHandler, List.of(
+                        "/api/v1/sessions/validate",
+                        "/api/v1/tweets",
+                        "/api/v1/tweets/sse"
+                )))
                 .addHandler(Method.POST, "/api/v1/sessions/login", sessionHandler::login)
+                .addHandler(Method.POST, "/api/v1/sessions/logout", sessionHandler::logout)
+                .addHandler(Method.GET, "/api/v1/sessions/validate", sessionHandler::getSessionForUi)
                 .addHandler(Method.POST, "/api/v1/tweets", tweetHandler::createTweet)
                 .addHandler(Method.GET, "/api/v1/tweets", tweetHandler::getAllTweets)
                 .addHandler(Method.GET, "/api/v1/tweets/sse", tweetHandler::sse)
@@ -39,6 +45,26 @@ public class App {
                                 .withDefaultFile("index.html")
                         ))
                 .start();
+    }
+
+    private MuHandler authFilter(SessionHandler sessionHandler, List<String> apiPathsToBeValidated) {
+        return (muRequest, muResponse) -> {
+            Session session = sessionHandler.getSession(muRequest, muResponse);
+            if (session == null && isApiMatched(apiPathsToBeValidated, muRequest)) {
+                muResponse.status(401);
+                return true;
+            }
+
+            if (session != null) {
+                muRequest.attribute("session", session);
+            }
+
+            return false;
+        };
+    }
+
+    private static boolean isApiMatched(List<String> apiPathsToBeValidated, MuRequest muRequest) {
+        return apiPathsToBeValidated.stream().anyMatch(api -> muRequest.uri().getPath().equals(api));
     }
 
     public void stop() {

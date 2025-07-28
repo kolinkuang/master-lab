@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class SessionHandler {
@@ -41,6 +42,7 @@ public class SessionHandler {
         muResponse.headers().set("Location", "/web/index.html");
     }
 
+    /*
     private static String random(int length) {
         StringBuilder sb = new StringBuilder(length);
         for (int i = 0; i < length; i++) {
@@ -49,6 +51,7 @@ public class SessionHandler {
         }
         return sb.toString();
     }
+    */
 
     private static String random2(int length) {
         final String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -77,6 +80,54 @@ public class SessionHandler {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void logout(MuRequest muRequest, MuResponse muResponse, Map<String, String> pathParams) {
+        Optional<String> cookieOptional = muRequest.cookie(COOKIE_NAME);
+        if (cookieOptional.isPresent()) {
+            final String hash = sha256(cookieOptional.get());
+            sessions.remove(hash);
+
+            muResponse.addCookie(CookieBuilder.newSecureCookie()
+                    .withName(COOKIE_NAME)
+                    .withValue(cookieOptional.get())
+                    .withMaxAgeInSeconds(2 * 60 * 60) // 2 hours
+                    .withPath("/")
+                    .build());
+        }
+
+        muResponse.status(302);
+        muResponse.headers().set("Location", "/web/login.html");
+    }
+
+    public void getSessionForUi(MuRequest muRequest, MuResponse muResponse, Map<String, String> pathParams) {
+        Session session = (Session) muRequest.attribute("session"); // Why to get session from request?
+        muResponse.status(200);
+        muResponse.write(session.toJson().toString());
+    }
+
+    public Session getSession(MuRequest muRequest, MuResponse muResponse) {
+        Optional<String> cookieOptional = muRequest.cookie(COOKIE_NAME);
+        if (cookieOptional.isEmpty()) {
+            return null;    // No session cookie found from UI request
+        }
+
+        final Session session = getSessionFromCache(cookieOptional.get());
+        if (session == null) {
+            return null;    // No session found for the cookie from backend cache
+        }
+
+        if (Instant.now().isAfter(session.expiredAt())) {
+            sessions.remove(session.hash()); // Remove expired session
+            return null; // Session expired
+        }
+
+        return session; // Valid session
+    }
+
+    private Session getSessionFromCache(String cookie) {
+        final String hash = sha256(cookie);
+        return sessions.getOrDefault(hash, null);
     }
 
 }
