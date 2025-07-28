@@ -35,6 +35,7 @@ public class App {
                         "/api/v1/tweets",
                         "/api/v1/tweets/sse"
                 )))
+                .addHandler(redirect())
                 .addHandler(Method.POST, "/api/v1/sessions/login", sessionHandler::login)
                 .addHandler(Method.POST, "/api/v1/sessions/logout", sessionHandler::logout)
                 .addHandler(Method.GET, "/api/v1/sessions/validate", sessionHandler::getSessionForUi)
@@ -47,6 +48,19 @@ public class App {
                                 .withDefaultFile("index.html")
                         ))
                 .start();
+    }
+
+    private MuHandler redirect() {
+        return (muRequest, muResponse) -> {
+            Session session = (Session) muRequest.attribute("session");
+            if (muRequest.uri().getPath().equals("/")) {
+                var redirectTo = session == null ? "/web/login.html" : "/web/index.html";
+                muResponse.status(302);
+                muResponse.headers().set("Location", redirectTo);
+                return true;
+            }
+            return false; // Continue processing the request
+        };
     }
 
     private MuHandler logRequest() {
